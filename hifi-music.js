@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -67,6 +67,10 @@ function init() {
   // 播放音乐页面
   if (location.href.indexOf('thread') !== -1) {
     setTimeout(() => {
+      if (!document.querySelector('.aplayer-icon-play')) {
+        next();
+        return;
+      }
       document.querySelector('.aplayer-icon-play').click();
       watchPlayEnd();
     }, 1000);
@@ -188,29 +192,43 @@ function watchPlayEnd() {
       const dtime = document.querySelector('.aplayer-dtime').innerText;
       const ptime = document.querySelector('.aplayer-ptime').innerText;
       if (dtime === '00:00' && ptime === '00:00') {
+        console.log('00:00');
         return;
       }
-      const end = dtime.split(':');
-      const start = ptime.split(':');
-      if (start[0] === end[0]) {
-        if (start[1] === end[1] || Number(start[1]) === Number(end[1] - 1)) {
-          clearInterval(timer);
-          document.querySelector('.aplayer-icon-pause').click()
-          const index = localStorage.getItem('play-list-index-zs');
-          if (index) {
-            const data = getPlayList();
-            if (data.length === +index + 1) {
-              location.href = data[0].href;
-              localStorage.setItem('play-list-index-zs', '0');
-              return;
-            }
-            location.href = data[+index + 1].href;
-            localStorage.setItem('play-list-index-zs', +index + 1);
-          }
-        }
+      const end = computedTime(dtime);
+      const start = computedTime(ptime);
+
+      if (start === end || start === (end - 1)) {
+        clearInterval(timer);
+        document.querySelector('.aplayer-icon-pause').click()
+        next();
       }
     } catch (error) {
       clearInterval(timer);
     }
   }, 1000)
+}
+
+// 下一首
+function next() {
+  const index = localStorage.getItem('play-list-index-zs');
+  if (index) {
+    const data = getPlayList();
+    if (data.length === +index + 1) {
+      location.href = data[0].href;
+      localStorage.setItem('play-list-index-zs', '0');
+      return;
+    }
+    location.href = data[+index + 1].href;
+    localStorage.setItem('play-list-index-zs', +index + 1);
+  }
+}
+
+// 计算04:22 格式时长
+function computedTime(time) {
+  let result = 0;
+  const arr = time.split(':');
+  result += Number(arr[0]) * 60;
+  result += Number(arr[1]);
+  return result;
 }
