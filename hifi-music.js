@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.3
+// @version      0.4
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -31,6 +31,13 @@ function insetPanel() {
         <span style="width: 1px;height: 8px;background: #333;"></span>
         <span id="clear-play-list-zs" style="color: #333;cursor: pointer;">清空播放列表</span>
       </div>
+      <div style="display: flex;align-items: center;flex-wrap: wrap;width: 100%;height: 30px;border-bottom: 1px solid #333;">
+        <span id="order-play-zs" style="margin-right: 8px;cursor: pointer;">顺序播放</span>
+        <span style="cursor: pointer;">
+          <input id="play-end-remove-zs" type="checkbox" id="vehicle1" name="vehicle1" value="remove">
+          <label style="margin-bottom: 0;" for="vehicle1">播放完成在列表移除</label>
+        </span>
+      </div>
       <div id="diy-play-list" style="display: flex;flex-direction: column;max-height: 500px;">
         <span style="color: #000;">播放列表</span>
         <span style="color: #333;">播放列表暂无添加音乐</span>
@@ -43,23 +50,51 @@ function insetPanel() {
   body ? body.insertAdjacentHTML('beforeend', panel) : '';
   setPlayList(getPlayList());
   setTimeout(() => {
+    // 点击开始自动播放
     document.getElementById('start-auto-play-zs').addEventListener('click', () => {
       const data = getPlayList();
       if (Array.isArray(data) && data.length) {
-        location.href = data[0].href;
+        window.open(data[0].href);
         localStorage.setItem('play-list-index-zs', '0');
       } else {
         alert('请先去音乐列表添加音乐到播放列表');
         location.href = 'https://www.hifini.com';
       }
     })
+    // 点击清空播放列表
     document.getElementById('clear-play-list-zs').addEventListener('click', () => {
       setPlayList([]);
     })
+    // 点击关于进入音乐播放页面无法自动播放问题
     document.getElementById('tips-zs').addEventListener('click', () => {
       alert(`由于浏览器策略不同，可能不允许脚本驱动媒体播放，可以手动点击播放音乐按钮，次数多了浏览器会记住你的选择，则脚本驱动媒体播放不会再失败。
         您也可以手动开启浏览器对声音的设置，将该网站设置为允许播放声音。`);
     })
+    // 点击顺序播放、随机播放
+    document.getElementById('order-play-zs').addEventListener('click', (e) => {
+      const text = e.target.innerText;
+      if (text === '顺序播放') {
+        document.getElementById('order-play-zs').innerText = '随机播放';
+        localStorage.setItem('play-order-zs', 'random');
+      }
+      if (text === '随机播放') {
+        document.getElementById('order-play-zs').innerText = '顺序播放';
+        localStorage.setItem('play-order-zs', 'order');
+      }
+    })
+    // 勾选、取消勾选 播放完成在列表移除
+    document.getElementById('play-end-remove-zs').addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      localStorage.setItem('play-end-remove-result', `${checked}`);
+    })
+    const localOrder = localStorage.getItem('play-order-zs');
+    const checked = localStorage.getItem('play-end-remove-result');
+    if (localOrder === 'random') {
+      document.getElementById('order-play-zs').innerText = '随机播放';
+    }
+    if (`${checked}` === 'true') {
+      document.getElementById('play-end-remove-zs').checked = true;
+    }
   }, 400)
 }
 
@@ -106,6 +141,7 @@ function init() {
   }
 }
 
+// 获取播放列表
 function getPlayList() {
   const data = localStorage.getItem('hifini_play_list');
   try {
@@ -115,6 +151,7 @@ function getPlayList() {
   }
 }
 
+// 设置播放列表并且重新渲染
 function setPlayList(data) {
   localStorage.setItem('hifini_play_list', JSON.stringify(data));
   if (Array.isArray(data)) {
@@ -174,6 +211,7 @@ function setPlayList(data) {
   }
 }
 
+// 通过判断className获取节点
 function getNodeByClassName(node, name) {
   for (let i = 0; i < node.length; i++) {
     if (node[i].className.split(' ').includes(name)) {
@@ -212,16 +250,30 @@ function watchPlayEnd() {
 
 // 下一首
 function next() {
-  const index = localStorage.getItem('play-list-index-zs');
+  let index = localStorage.getItem('play-list-index-zs');
   if (index) {
     const data = getPlayList();
-    if (data.length === +index + 1) {
-      location.href = data[0].href;
-      localStorage.setItem('play-list-index-zs', '0');
-      return;
+    const localOrder = localStorage.getItem('play-order-zs');
+    const checked = localStorage.getItem('play-end-remove-result');
+    if (`${checked}` === 'true') {
+      data.splice(+index, 1);
+      index = index - 1;
+      localStorage.setItem('hifini_play_list', JSON.stringify(data));
     }
-    location.href = data[+index + 1].href;
-    localStorage.setItem('play-list-index-zs', +index + 1);
+    // 随机播放
+    if (localOrder === 'random') {
+      const sindex = Random(1, data.length);
+      location.href = data[sindex - 1].href;
+      localStorage.setItem('play-list-index-zs', sindex - 1);
+    } else { // 顺序播放
+      if (data.length === +index + 1) {
+        location.href = data[0].href;
+        localStorage.setItem('play-list-index-zs', '0');
+        return;
+      }
+      location.href = data[+index + 1].href;
+      localStorage.setItem('play-list-index-zs', +index + 1);
+    }
   }
 }
 
@@ -232,4 +284,9 @@ function computedTime(time) {
   result += Number(arr[0]) * 60;
   result += Number(arr[1]);
   return result;
+}
+
+// 生成指定范围随机数
+function Random(min, max) {
+  return Math.round(Math.random() * (max - min)) + min;
 }
