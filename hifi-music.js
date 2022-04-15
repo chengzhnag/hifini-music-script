@@ -129,7 +129,7 @@ function setPlayList(data) {
           data-href="${it.href}"
           data-type="play"
           data-index="${idx}"
-          style="overflow: hidden;width: 160px;word-break: break-all;white-space: nowrap;text-overflow: ellipsis;cursor: pointer;"
+          style="overflow: hidden;width: 160px;word-break: break-all;white-space: nowrap;text-overflow: ellipsis;cursor: pointer;color: ${index && +index === idx ? 'blue' : '#212529'};"
         >
           ${it.name}
         </span>
