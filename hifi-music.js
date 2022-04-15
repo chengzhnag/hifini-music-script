@@ -123,6 +123,7 @@ function setPlayList(data) {
     const divEle = document.createElement('div');
     divEle.style = 'width: 100%;overflow-y: scroll;overflow-x: hidden;';
     let html = '';
+    const index = localStorage.getItem('play-list-index-zs');
     data.forEach((it, idx) => {
       html += `<div style="display: flex;height: 24px;align-items: center;">
         <span
