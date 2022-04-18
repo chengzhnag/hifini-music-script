@@ -1,11 +1,10 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4
+// @version      0.4.1
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
-// @email        1772591173@qq.com
 // @match        https://www.hifini.com/*
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=hifini.com
 // @grant        none
@@ -111,7 +110,10 @@ function init() {
     }, 1000);
   } else { // 外层音乐列表页面
     try {
-      const ulEle = Array.from(document.querySelector('.card-body').children[0].children).filter(i => i.tagName === 'LI');
+      let ulEle = Array.from(document.querySelector('.card-body').children[0].children).filter(i => i.tagName === 'LI');
+      if (location.href.indexOf('search') !== -1) {
+        ulEle = Array.from(document.querySelector('.search .card-body').children[0].children).filter(i => i.tagName === 'LI');
+      }
       ulEle.forEach(it => {
         const mediaEle = getNodeByClassName(it.children, 'media-body');
         const subjectEle = getNodeByClassName(mediaEle.children, 'subject');
