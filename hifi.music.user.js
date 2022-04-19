@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.1
+// @version      0.4.2
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -105,6 +105,16 @@ function init() {
         next();
         return;
       }
+      const playerEle = document.getElementById('player4');
+      playerEle.style.position = 'relative';
+      const btnEle = document.createElement('button');
+      btnEle.style = 'position: absolute;top: 14px;right: 7px;cursor: pointer;';
+      btnEle.innerHTML = '下一首';
+      btnEle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        next();
+      })
+      playerEle.appendChild(btnEle);
       document.querySelector('.aplayer-icon-play').click();
       watchPlayEnd();
     }, 1000);
