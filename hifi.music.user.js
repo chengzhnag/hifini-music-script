@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.2
+// @version      0.4.3
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -24,7 +24,7 @@ function insetPanel() {
   // if (location.href.indexOf('thread') !== -1) return;
   const body = document.getElementById('body');
   const panel = `
-    <div style="position: fixed;top: 100px;left: 0;width: 240px;background: #b1cde4;border-bottom-right-radius: 5px;border-top-right-radius: 5px; padding: 6px 8px;font-size: 12px;z-index: 1001;">
+    <div id="play-list-panel-zs" style="position: fixed;top: 100px;left: 0;width: 240px;background: #b1cde4;border-bottom-right-radius: 5px;border-top-right-radius: 5px; padding: 6px 8px;font-size: 12px;z-index: 1001;transition: width 2s, height 2s;">
       <div style="display: flex;align-items: center;justify-content: space-between;width: 100%;height: 30px;border-bottom: 1px solid #333;">
         <span id="start-auto-play-zs" style="color: #333;cursor: pointer;">开始自动播放</span>
         <span style="width: 1px;height: 8px;background: #333;"></span>
@@ -43,6 +43,25 @@ function insetPanel() {
       </div>
       <div id="tips-zs" style="color: #008cff;cursor: pointer;">
         关于进入音乐播放页面无法自动播放问题
+      </div>
+      <div style="
+        position: absolute;
+        top: 50%;
+        right: -14px;
+        width: 14px;
+        margin-top: -20px;
+        background: #b1cde4;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        height: 40px;
+        writing-mode: vertical-rl;
+        border-top-right-radius: 4px;
+        border-bottom-right-radius: 4px;
+        "
+        id="fold-zs"
+      >
+        收起
       </div>
     </div>
   `;
@@ -86,6 +105,17 @@ function insetPanel() {
       const checked = e.target.checked;
       localStorage.setItem('play-end-remove-result', `${checked}`);
     })
+    // 点击收起按钮
+    document.getElementById('fold-zs').addEventListener('click', (e) => {
+      const panelELe = document.getElementById('play-list-panel-zs');
+      panelELe.style.overflow = 'hidden';
+      panelELe.style.width = '0px';
+      setTimeout(() => {
+        panelELe.style.display = 'none';
+        initFoldPanel();
+      }, 800)
+    })
+
     const localOrder = localStorage.getItem('play-order-zs');
     const checked = localStorage.getItem('play-end-remove-result');
     if (localOrder === 'random') {
@@ -95,6 +125,33 @@ function insetPanel() {
       document.getElementById('play-end-remove-zs').checked = true;
     }
   }, 400)
+}
+
+// 初始化收起后的面板
+function initFoldPanel() {
+  const foldEle = document.getElementById('fold-panel-zs');
+  if (foldEle) {
+    foldEle.style.display = 'block';
+    foldEle.addEventListener('click', () => {
+      foldEle.style.display = 'none';
+      document.getElementById('play-list-panel-zs').style.overflow = 'inherit';
+      document.getElementById('play-list-panel-zs').style.display = 'block';
+      document.getElementById('play-list-panel-zs').style.width = '240px';
+    })
+  } else {
+    const body = document.getElementById('body');
+    const divDom = document.createElement('div');
+    divDom.setAttribute('id', 'fold-panel-zs');
+    divDom.style = 'position: fixed;top: 100px;left: 0;width: 40px;height: 40px;border-radius: 50%;background: #b1cde4;font-size: 12px;z-index: 1001;cursor: pointer;text-align: center;line-height: 40px;';
+    divDom.innerText = '展开';
+    divDom.addEventListener('click', () => {
+      divDom.style.display = 'none';
+      document.getElementById('play-list-panel-zs').style.overflow = 'inherit';
+      document.getElementById('play-list-panel-zs').style.display = 'block';
+      document.getElementById('play-list-panel-zs').style.width = '240px';
+    })
+    body ? body.appendChild(divDom) : '';
+  }
 }
 
 function init() {
