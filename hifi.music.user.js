@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.3
+// @version      0.4.4
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -174,6 +174,26 @@ function init() {
       playerEle.appendChild(btnEle);
       document.querySelector('.aplayer-icon-play').click();
       watchPlayEnd();
+      const alreadyPlayList = localStorage.getItem('already-play-list');
+      if (alreadyPlayList) {
+        try {
+          const list = JSON.parse(alreadyPlayList);
+          list.push({
+            pathname: location.pathname,
+            timeStamp: new Date().getTime()
+          });
+          const _list = list.filter(i => {
+            return (new Date().getTime() - i.timeStamp) < 60 * 30 * 1000;
+          });
+          console.log('有已播放列表，收录，且过滤列表中超过半小时的项', _list);
+          localStorage.setItem('already-play-list', JSON.stringify(_list));
+        } catch (err) {
+          console.log(err.message);
+        }
+      } else {
+        console.log('无已播放列表，收录第一首');
+        localStorage.setItem('already-play-list', JSON.stringify([{ pathname: location.pathname, timeStamp: new Date().getTime() }]));
+      }
     }, 1000);
   } else { // 外层音乐列表页面
     try {
@@ -331,7 +351,23 @@ function next() {
     }
     // 随机播放
     if (localOrder === 'random') {
-      const sindex = Random(1, data.length);
+      let sindex = Random(1, data.length);
+      console.log('随机生成 ', sindex);
+      const alreadyPlayList = localStorage.getItem('already-play-list');
+      if (alreadyPlayList) {
+        try {
+          const list = JSON.parse(alreadyPlayList);
+          let count = 0;
+          while (list.find(i => data[sindex - 1].href.includes(i.pathname)) && count <= 5) {
+            sindex = Random(1, data.length);
+            console.log('重新随机生成 ', sindex);
+            count++;
+          }
+        } catch (err) {
+          console.log(err.message);
+        }
+      }
+      console.log('最终随机播放url：', sindex, data[sindex - 1].href);
       location.href = data[sindex - 1].href;
       localStorage.setItem('play-list-index-zs', sindex - 1);
     } else { // 顺序播放
