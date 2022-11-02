@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.4
+// @version      0.4.5
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -30,15 +30,16 @@ function insetPanel() {
         <span style="width: 1px;height: 8px;background: #333;"></span>
         <span id="clear-play-list-zs" style="color: #333;cursor: pointer;">清空播放列表</span>
       </div>
-      <div style="display: flex;align-items: center;flex-wrap: wrap;width: 100%;height: 30px;border-bottom: 1px solid #333;">
+      <div style="display: flex;align-items: center;flex-wrap: wrap;width: 100%;min-height: 30px;border-bottom: 1px solid #333;">
         <span id="order-play-zs" style="margin-right: 8px;cursor: pointer;">顺序播放</span>
         <span style="cursor: pointer;">
           <input id="play-end-remove-zs" type="checkbox" id="vehicle1" name="vehicle1" value="remove">
           <label style="margin-bottom: 0;" for="vehicle1">播放完成在列表移除</label>
         </span>
+        <span id="random-order-zs" style="margin-right: 8px;cursor: pointer;">随机排序</span>
       </div>
       <div id="diy-play-list" style="display: flex;flex-direction: column;max-height: 500px;">
-        <span style="color: #000;">播放列表</span>
+        <span style="color: #000;font-size: 14px;">播放列表</span>
         <span style="color: #333;">播放列表暂无添加音乐</span>
       </div>
       <div id="tips-zs" style="color: #008cff;cursor: pointer;">
@@ -105,15 +106,19 @@ function insetPanel() {
       const checked = e.target.checked;
       localStorage.setItem('play-end-remove-result', `${checked}`);
     })
+    // 点击随机排序
+    document.getElementById('random-order-zs').addEventListener('click', (e) => {
+      setRandomOrder();
+    })
     // 点击收起按钮
     document.getElementById('fold-zs').addEventListener('click', (e) => {
       const panelELe = document.getElementById('play-list-panel-zs');
       panelELe.style.overflow = 'hidden';
-      panelELe.style.width = '0px';
+      // panelELe.style.width = '0px';
       setTimeout(() => {
         panelELe.style.display = 'none';
         initFoldPanel();
-      }, 800)
+      }, 0)
     })
 
     const localOrder = localStorage.getItem('play-order-zs');
@@ -125,6 +130,23 @@ function insetPanel() {
       document.getElementById('play-end-remove-zs').checked = true;
     }
   }, 400)
+}
+
+// 设置随机排序
+function setRandomOrder() {
+  const list = getPlayList();
+  const result = [];
+  let len = list.length;
+  while (len) {
+    const index = Random(1, len);
+    result.push(list[index - 1]);
+    list.splice(index - 1, 1);
+    len--;
+  }
+  localStorage.setItem('play-list-index-zs', '0');
+  console.log('重新排列后result:', result);
+  localStorage.setItem('hifini_play_list', JSON.stringify(result));
+  location.href = result[0].href;
 }
 
 // 初始化收起后的面板
@@ -245,7 +267,7 @@ function setPlayList(data) {
   localStorage.setItem('hifini_play_list', JSON.stringify(data));
   if (Array.isArray(data)) {
     const ele = document.getElementById('diy-play-list');
-    ele.innerHTML = '<span style="color: #000;">播放列表</span>';
+    ele.innerHTML = '<span style="color: #000;font-size: 14px;">播放列表</span>';
     const divEle = document.createElement('div');
     divEle.style = 'width: 100%;overflow-y: scroll;overflow-x: hidden;';
     let html = '';
@@ -256,13 +278,11 @@ function setPlayList(data) {
           data-href="${it.href}"
           data-type="play"
           data-index="${idx}"
-          style="overflow: hidden;width: 160px;word-break: break-all;white-space: nowrap;text-overflow: ellipsis;cursor: pointer;color: ${index && +index === idx ? 'blue' : '#212529'};"
+          style="overflow: hidden;flex: 1;word-break: break-all;white-space: nowrap;text-overflow: ellipsis;cursor: pointer;color: ${index && +index === idx ? 'blue' : '#212529'};"
         >
           ${it.name}
         </span>
-        <span data-href="${it.href}" data-type="del" data-index="${idx}" style="white-space: nowrap;color: #9a2121;cursor: pointer;margin-left: 4px;">删除</span>
-        <span data-href="${it.href}" data-type="move-up" data-index="${idx}" style="white-space: nowrap;color: #9a2121;cursor: pointer;margin-left: 4px;">上移</span>
-        <span data-href="${it.href}" data-type="move-down" data-index="${idx}" style="white-space: nowrap;color: #9a2121;cursor: pointer;margin-left: 4px;">下移</span>
+        <span data-href="${it.href}" data-type="del" data-index="${idx}" style="white-space: nowrap;color: #9a2121;cursor: pointer;margin-left: 6px;">删除</span>
       </div>
       `;
     })
@@ -276,27 +296,13 @@ function setPlayList(data) {
       } else if (type === 'del') { // 删除
         list.splice(+index, 1);
         setPlayList(list);
-      } else if (type === 'move-up') { // 上移
-        if (+index) {
-          const snap = list[+index];
-          list[+index] = list[+index - 1];
-          list[+index - 1] = snap;
-          setPlayList(list);
-        }
-      } else if (type === 'move-down') { // 下移
-        if (+index < list.length - 1) {
-          const snap = list[+index];
-          list[+index] = list[+index + 1];
-          list[+index + 1] = snap;
-          setPlayList(list);
-        }
       }
     })
     ele.appendChild(divEle);
   }
   if (Array.isArray(data) && !data.length) {
     const ele = document.getElementById('diy-play-list');
-    ele.innerHTML = '<span style="color: #000;">播放列表</span><span style="color: #333;">播放列表暂无添加音乐</span>';
+    ele.innerHTML = '<span style="color: #000;font-size: 14px;">播放列表</span><span style="color: #333;">播放列表暂无添加音乐</span>';
   }
 }
 
