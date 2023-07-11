@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.5
+// @version      0.4.6
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
@@ -187,13 +187,23 @@ function init() {
       const playerEle = document.getElementById('player4');
       playerEle.style.position = 'relative';
       const btnEle = document.createElement('button');
+      const addBtnEle = document.createElement('button');
       btnEle.style = 'position: absolute;top: 14px;right: 7px;cursor: pointer;';
+      addBtnEle.style = 'position: absolute;top: 14px;right: 70px;cursor: pointer;';
       btnEle.innerHTML = '下一首';
+      addBtnEle.innerHTML = '添加到播放列表';
       btnEle.addEventListener('click', (e) => {
         e.stopPropagation();
         next();
-      })
+      });
+      addBtnEle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const href = location.href;
+        const name = document.querySelector('.media-body h4').innerText;
+        addItemPlayList({ href, name });
+      });
       playerEle.appendChild(btnEle);
+      playerEle.appendChild(addBtnEle);
       document.querySelector('.aplayer-icon-play').click();
       watchPlayEnd();
       const alreadyPlayList = localStorage.getItem('already-play-list');
@@ -235,13 +245,7 @@ function init() {
           e.stopPropagation();
           const href = e.target.dataset.href;
           const name = e.target.dataset.name;
-          const playList = getPlayList();
-          if (playList.find(i => i.href === href)) return;
-          playList.push({
-            name,
-            href
-          })
-          setPlayList(playList);
+          addItemPlayList({ href, name });
         })
         subjectEle.appendChild(btnEle);
       })
@@ -250,6 +254,16 @@ function init() {
       alert("插入'添加到播放列表'按钮失败");
     }
   }
+}
+
+function addItemPlayList({ name, href }) {
+  const playList = getPlayList();
+  if (playList.find(i => i.href === href)) return;
+  playList.push({
+    name,
+    href
+  });
+  setPlayList(playList);
 }
 
 // 获取播放列表
@@ -318,6 +332,7 @@ function getNodeByClassName(node, name) {
 // 监听播放完毕
 function watchPlayEnd() {
   const url = location.href;
+  let count = 0;
   const timer = setInterval(() => {
     if (url !== location.href) {
       clearInterval(timer);
@@ -327,6 +342,10 @@ function watchPlayEnd() {
       const ptime = document.querySelector('.aplayer-ptime').innerText;
       if (dtime === '00:00' && ptime === '00:00') {
         console.log('00:00');
+        count++;
+        if (count > 6) {
+          next();
+        }
         return;
       }
       const end = computedTime(dtime);
