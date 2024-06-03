@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         hifini音乐播放管理
 // @namespace    http://tampermonkey.net/
-// @version      0.4.4
+// @version      0.4.7
 // @description  在HiFiNi网站自动播放歌曲，可以自定义播放列表
 // @author       zs
 // @license MIT
